@@ -151,6 +151,8 @@ void ZR_Precache(IEntityResourceManifest* pResourceManifest)
 	pResourceManifest->AddResource(g_szZombieWinOverlayMaterial.c_str());
 
 	pResourceManifest->AddResource("soundevents/soundevents_zr.vsndevts");
+	pResourceManifest->AddResource("soundevents/game_sounds_player.vsndevts");
+	pResourceManifest->AddResource("soundevents/game_sounds_weapons.vsndevts");
 }
 
 void ZR_CreateOverlay(const char* pszOverlayParticlePath, float flAlpha, float flRadius, float flLifeTime, Color clrTint, const char* pszMaterialOverride)
@@ -1509,6 +1511,9 @@ void ZR_Hook_ClientCommand_JoinTeam(CPlayerSlot slot, const CCommand &args)
 		SpawnPlayer(pController);
 }
 
+static bool g_bDamageIncome = false;
+FAKE_BOOL_CVAR(cs2f_damage_income, "Whether to enable income from damaging zombies", g_bDamageIncome, false, false);
+
 void ZR_OnPlayerHurt(IGameEvent* pEvent)
 {
 	CCSPlayerController *pAttackerController = (CCSPlayerController*)pEvent->GetPlayerController("attacker");
@@ -1516,12 +1521,18 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 	const char* szWeapon = pEvent->GetString("weapon");
 	int iDmgHealth = pEvent->GetInt("dmg_health");
 
+	int money = pAttackerController->m_pInGameMoneyServices->m_iAccount;											
 	// grenade and molotov knockbacks are handled by TakeDamage detours
 	if (!pAttackerController || !pVictimController || !V_strncmp(szWeapon, "inferno", 7) || !V_strncmp(szWeapon, "hegrenade", 9))
 		return;
 
 	if (pAttackerController->m_iTeamNum() == CS_TEAM_CT && pVictimController->m_iTeamNum() == CS_TEAM_T)
+	{
 		ZR_ApplyKnockback((CCSPlayerPawn*)pAttackerController->GetPawn(), (CCSPlayerPawn*)pVictimController->GetPawn(), iDmgHealth, szWeapon);
+		if(g_bDamageIncome)
+		
+		pAttackerController->m_pInGameMoneyServices->m_iAccount = money + iDmgHealth;
+	}			 
 }
 
 void ZR_OnPlayerDeath(IGameEvent* pEvent)
