@@ -151,8 +151,8 @@ void ZR_Precache(IEntityResourceManifest* pResourceManifest)
 	pResourceManifest->AddResource(g_szZombieWinOverlayMaterial.c_str());
 
 	pResourceManifest->AddResource("soundevents/soundevents_zr.vsndevts");
-	pResourceManifest->AddResource("soundevents/game_sounds_player.vsndevts");
-	pResourceManifest->AddResource("soundevents/game_sounds_weapons.vsndevts");
+	//pResourceManifest->AddResource("soundevents/game_sounds_player_low.vsndevts");
+	pResourceManifest->AddResource("soundevents/game_sounds_weapons_low.vsndevts");
 }
 
 void ZR_CreateOverlay(const char* pszOverlayParticlePath, float flAlpha, float flRadius, float flLifeTime, Color clrTint, const char* pszMaterialOverride)
@@ -1581,8 +1581,7 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 	{
 		ZR_ApplyKnockback((CCSPlayerPawn*)pAttackerController->GetPawn(), (CCSPlayerPawn*)pVictimController->GetPawn(), iDmgHealth, szWeapon);
 		if(g_bDamageIncome)
-		
-		pAttackerController->m_pInGameMoneyServices->m_iAccount = money + iDmgHealth;
+			pAttackerController->m_pInGameMoneyServices->m_iAccount = money + iDmgHealth;
 	}			 
 }
 

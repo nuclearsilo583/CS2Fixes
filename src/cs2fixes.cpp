@@ -574,7 +574,7 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 		if (g_bEnableLeader)
 			Leader_PostEventAbstract_Source1LegacyGameEvent(clients, pData);
 	}
-	else if (info->m_MessageId == TE_EffectDispatchId)
+	else if (info->m_MessageId == TE_EffectDispatchId) // Stop blood screen particle effect.
 	{
 		CMsgTEEffectDispatch* msg = (CMsgTEEffectDispatch*)pData;
 		CMsgEffectData EffectData = msg->effectdata();
@@ -585,6 +585,24 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 		{
 			*(uint64 *)clients &= ~g_playerManager->GetStopDecalsMask();
 		}
+	}
+	else if(info->m_MessageId == GE_SosStartSoundEvent) // block some of game sound events.
+	{
+		CMsgSosStartSoundEvent* msg = (CMsgSosStartSoundEvent*)pData;
+
+		/*
+		Message("CMsgSosStartSoundEvent: soundevent_guid:%d --- soundevent_hash:%d --- start_time:%f\n", msg->soundevent_guid(), 
+			msg->soundevent_hash(), msg->start_time());
+		*/
+
+		if (msg->soundevent_hash() == 62938228 || msg->soundevent_hash() == -527125825) // Attacker headshot / body shot sound call back.
+			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+		
+		if (msg->soundevent_hash() == 2019962436 || msg->soundevent_hash() == -2010269021) // victim headshot shot sound call back.
+			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+		
+		if (msg->soundevent_hash() == -1847647044 || msg->soundevent_hash() == 856190898) // victim body shot sound call back.
+			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
 	}
 }
 
