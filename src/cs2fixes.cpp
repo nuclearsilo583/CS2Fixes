@@ -574,6 +574,18 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 		if (g_bEnableLeader)
 			Leader_PostEventAbstract_Source1LegacyGameEvent(clients, pData);
 	}
+	else if (info->m_MessageId == TE_EffectDispatchId)
+	{
+		CMsgTEEffectDispatch* msg = (CMsgTEEffectDispatch*)pData;
+		CMsgEffectData EffectData = msg->effectdata();
+		int effectindex = EffectData.effectindex();
+		int effectname = EffectData.effectname();
+
+		if(effectindex == 0 && (effectname == 4 || effectname == 9))
+		{
+			*(uint64 *)clients &= ~g_playerManager->GetStopDecalsMask();
+		}
+	}
 }
 
 void CS2Fixes::AllPluginsLoaded()
