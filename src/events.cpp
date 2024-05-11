@@ -28,6 +28,7 @@
 #include "zombiereborn.h"
 #include "votemanager.h"
 #include "leader.h"
+#include "hitmarker.h"
 #include "recipientfilters.h"
 
 #include "tier0/memdbgon.h"
@@ -183,6 +184,7 @@ GAME_EVENT_F(player_hurt)
 
 	pPlayer->SetTotalDamage(pPlayer->GetTotalDamage() + pEvent->GetInt("dmg_health"));
 	pPlayer->SetTotalHits(pPlayer->GetTotalHits() + 1);
+
 }
 
 GAME_EVENT_F(player_death)

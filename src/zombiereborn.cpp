@@ -37,6 +37,7 @@
 #include "customio.h"
 #include <sstream>
 #include "leader.h"
+#include "hitmarker.h"
 #include "tier0/vprof.h"
 #include <fstream>
 #include "vendor/nlohmann/json.hpp"
@@ -1572,6 +1573,8 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 	const char* szWeapon = pEvent->GetString("weapon");
 	int iDmgHealth = pEvent->GetInt("dmg_health");
 
+	int iHitGroup = pEvent->GetInt("hitgroup");
+
 	int money = pAttackerController->m_pInGameMoneyServices->m_iAccount;											
 	// grenade and molotov knockbacks are handled by TakeDamage detours
 	if (!pAttackerController || !pVictimController || !V_strncmp(szWeapon, "inferno", 7) || !V_strncmp(szWeapon, "hegrenade", 9))
@@ -1582,7 +1585,13 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 		ZR_ApplyKnockback((CCSPlayerPawn*)pAttackerController->GetPawn(), (CCSPlayerPawn*)pVictimController->GetPawn(), iDmgHealth, szWeapon);
 		if(g_bDamageIncome)
 			pAttackerController->m_pInGameMoneyServices->m_iAccount = money + iDmgHealth;
-	}			 
+	}
+
+	//CCSPlayerController* pController = CCSPlayerController::FromSlot(pAttackerController->GetPlayerSlot());
+
+	//Message("This attacker slot is: %d with hitgroup: %d\n", pAttackerController->GetPlayerSlot(), iHitGroup);
+
+	CreateHitMarker(pAttackerController->GetPlayerSlot(), iHitGroup);
 }
 
 void ZR_OnPlayerDeath(IGameEvent* pEvent)

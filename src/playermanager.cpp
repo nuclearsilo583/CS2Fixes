@@ -31,6 +31,7 @@
 #include "ctimer.h"
 #include "ctime"
 #include "leader.h"
+#include "hitmarker.h"
 #include "tier0/vprof.h"
 
 #include "tier0/memdbgon.h"
