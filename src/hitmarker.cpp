@@ -37,8 +37,11 @@ void HitMarker_Precache(IEntityResourceManifest *pResourceManifest)
 
 void CreateHitMarker(CPlayerSlot PlayerSlot, int hitgroup)
 {
+    if(!g_bHitMarkerEnable)
+        return;
+
     CRecipientFilter filter;
-    filter.AddRecipient(CPlayerSlot(PlayerSlot)); //player slot 17
+    filter.AddRecipient(CPlayerSlot(PlayerSlot)); //add player to filter
 
     addresses::DispatchParticleEffect(hitgroup != 1 ? g_szHitMarkerParticle.c_str() : g_szHitMarkerHSParticle.c_str(), PATTACH_WORLDORIGIN, CCSPlayerController::FromSlot(PlayerSlot), 0, "", false, -1, &filter, 0);
 }

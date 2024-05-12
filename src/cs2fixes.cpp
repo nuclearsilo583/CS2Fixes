@@ -591,11 +591,8 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 	{
 		CMsgSosStartSoundEvent* msg = (CMsgSosStartSoundEvent*)pData;
 
-		/*
-		Message("CMsgSosStartSoundEvent: soundevent_guid:%d --- soundevent_hash:%d --- start_time:%f\n", msg->soundevent_guid(), 
-			msg->soundevent_hash(), msg->start_time());
-		*/
-
+		//Message("CMsgSosStartSoundEvent: soundevent_hash:%d\n", msg->soundevent_hash());
+		
 		if (msg->soundevent_hash() == 62938228 || msg->soundevent_hash() == -527125825) // Attacker headshot / body shot sound call back.
 			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
 		
@@ -604,6 +601,9 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 		
 		if (msg->soundevent_hash() == -1847647044 || msg->soundevent_hash() == 856190898) // victim body shot sound call back.
 			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+
+		//if (msg->soundevent_hash() == 1769891506 || msg->soundevent_hash() == -819232663 /*|| msg->soundevent_hash() == -660306313*/) // attacker / victim knife hit body / backstab sound call back.
+		//	*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
 	}
 }
 
