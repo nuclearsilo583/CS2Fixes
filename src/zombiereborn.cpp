@@ -1642,7 +1642,7 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 
 	if (pAttackerController->m_iTeamNum() == CS_TEAM_CT && pVictimController->m_iTeamNum() == CS_TEAM_T)
 	{
-		ZR_ApplyKnockback((CCSPlayerPawn*)pAttackerController->GetPawn(), (CCSPlayerPawn*)pVictimController->GetPawn(), iDmgHealth, szWeapon);
+		ZR_ApplyKnockback((CCSPlayerPawn*)pAttackerController->GetPawn(), (CCSPlayerPawn*)pVictimController->GetPawn(), iDmgHealth, szWeapon, iHitGroup);
 		if(g_bDamageIncome)
 			pAttackerController->m_pInGameMoneyServices->m_iAccount = money + iDmgHealth;
 	}
