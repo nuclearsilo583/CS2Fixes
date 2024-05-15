@@ -103,6 +103,9 @@ static float g_flInfectShakeAmplitude = 15.f;
 static float g_flInfectShakeFrequency = 2.f;
 static float g_flInfectShakeDuration = 5.f;
 
+// Custom Icon SVG
+static std::string g_szInfectIcon;
+
 FAKE_BOOL_CVAR(zr_enable, "Whether to enable ZR features", g_bEnableZR, false, false)
 FAKE_FLOAT_CVAR(zr_ztele_max_distance, "Maximum distance players are allowed to move after starting ztele", g_flMaxZteleDistance, 150.0f, false)
 FAKE_BOOL_CVAR(zr_ztele_allow_humans, "Whether to allow humans to use ztele", g_bZteleHuman, false, false)
@@ -131,6 +134,8 @@ FAKE_FLOAT_CVAR(zr_infect_shake_amp, "Amplitude of shaking effect", g_flInfectSh
 FAKE_FLOAT_CVAR(zr_infect_shake_frequency, "Frequency of shaking effect", g_flInfectShakeFrequency, 2.f, false);
 FAKE_FLOAT_CVAR(zr_infect_shake_duration, "Duration of shaking effect", g_flInfectShakeDuration, 5.f, false);
 
+FAKE_STRING_CVAR(zr_svg_infect_icon, "SVG icon to use when getting infected (panorama/images/icons/equipment/)", g_szInfectIcon, false)
+
 // meant only for offline config validation and can easily cause issues when used on live server
 #ifdef _DEBUG
 CON_COMMAND_F(zr_reload_classes, "Reload ZR player classes", FCVAR_SPONLY | FCVAR_LINKED_CONCOMMAND)
@@ -153,8 +158,7 @@ void ZR_Precache(IEntityResourceManifest* pResourceManifest)
 	pResourceManifest->AddResource(g_szZombieWinOverlayMaterial.c_str());
 
 	pResourceManifest->AddResource("soundevents/soundevents_zr.vsndevts");
-	//pResourceManifest->AddResource("soundevents/game_sounds_player_low.vsndevts");
-	pResourceManifest->AddResource("soundevents/game_sounds_weapons_low.vsndevts");
+	pResourceManifest->AddResource("soundevents/soundevents_mmb_countdown.vsndevts");
 }
 
 void ZR_CreateOverlay(const char* pszOverlayParticlePath, float flAlpha, float flRadius, float flLifeTime, Color clrTint, const char* pszMaterialOverride)
@@ -1276,7 +1280,7 @@ void ZR_Infect(CCSPlayerController *pAttackerController, CCSPlayerController *pV
 	ZR_CheckTeamWinConditions(CS_TEAM_T);
 
 	if (!bDontBroadcast)
-		ZR_FakePlayerDeath(pAttackerController, pVictimController, "knife"); // or any other killicon
+		ZR_FakePlayerDeath(pAttackerController, pVictimController, g_szInfectIcon.c_str()); // or any other killicon
 
 	CCSPlayerPawn *pVictimPawn = (CCSPlayerPawn*)pVictimController->GetPawn();
 	if (!pVictimPawn)
@@ -1486,6 +1490,27 @@ void ZR_StartInitialCountdown()
 			if (g_iInfectionCountDown % 5 == 0)
 				ClientPrintAll(HUD_PRINTTALK, "%s%s", ZR_PREFIX, message);
 		}
+
+		if(0<g_iInfectionCountDown<=10)
+		{
+			for (int i = 0; i < gpGlobals->maxClients; i++)
+			{
+				char sEntry[MAX_PATH];
+
+				CCSPlayerController* pController = CCSPlayerController::FromSlot(i);
+				if (!pController || !pController->IsConnected())
+					continue;
+
+				CCSPlayerPawn* pPawn = (CCSPlayerPawn*)pController->GetPawn();
+				if (!pPawn || !pPawn->IsAlive())
+					continue;
+				
+				V_snprintf(sEntry, sizeof(sEntry), "zr.cd.%d", g_iInfectionCountDown);
+
+				pPawn->EmitSound(sEntry, 1.0, 0.2);
+			}
+		}
+
 		g_iInfectionCountDown--;
 
 		return 1.0f;
@@ -1647,7 +1672,9 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 			int money = pAttackerController->m_pInGameMoneyServices->m_iAccount;	// Check here or crash uppon get m_iAccount of the world;
 			pAttackerController->m_pInGameMoneyServices->m_iAccount = money + iDmgHealth;
 		}
-	}			 
+	}
+
+	CreateHitMarker(pAttackerController->GetPlayerSlot(), iHitGroup);			 
 }
 
 void ZR_OnPlayerDeath(IGameEvent* pEvent)

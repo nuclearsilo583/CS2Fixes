@@ -947,7 +947,7 @@ const char *CS2Fixes::GetLicense()
 const char *CS2Fixes::GetVersion()
 {
 #ifndef CS2FIXES_VERSION
-#define CS2FIXES_VERSION "1.8.2-dev nuclear silo edits (1.0.1)"
+#define CS2FIXES_VERSION "1.8.2-dev nuclear silo edits (1.0.2)"
 #endif
 
 	return CS2FIXES_VERSION; // defined by the build script
