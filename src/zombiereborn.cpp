@@ -70,6 +70,7 @@ static CHandle<CTeam> g_hTeamT;
 
 CZRPlayerClassManager* g_pZRPlayerClassManager = nullptr;
 ZRWeaponConfig *g_pZRWeaponConfig = nullptr;
+ZRHitgroupConfig *g_pZRHitgroupConfig = nullptr;
 
 bool g_bEnableZR = false;
 static float g_flMaxZteleDistance = 150.0f;
@@ -888,6 +889,9 @@ void ZR_OnLevelInit()
 	});
 
 	g_pZRWeaponConfig->LoadWeaponConfig();
+
+	g_pZRHitgroupConfig->LoadHitgroupConfig();
+
 	SetupCTeams();
 }
 
@@ -908,7 +912,7 @@ void ZRWeaponConfig::LoadWeaponConfig()
 	{
 		const char *pszWeaponName = pKey->GetName();
 		bool bEnabled = pKey->GetBool("enabled", false);
-		float flKnockback= pKey->GetFloat("knockback", 0.0f);
+		float flKnockback= pKey->GetFloat("knockback", .2f);
 		Message("%s knockback: %f\n", pszWeaponName, flKnockback);
 		ZRWeapon *weapon = new ZRWeapon;
 		if (!bEnabled)
@@ -927,6 +931,55 @@ ZRWeapon* ZRWeaponConfig::FindWeapon(const char *pszWeaponName)
 	uint16 index = m_WeaponMap.Find(hash_32_fnv1a_const(pszWeaponName));
 	if (m_WeaponMap.IsValidIndex(index))
 		return m_WeaponMap[index];
+
+	return nullptr;
+}
+
+void ZRHitgroupConfig::LoadHitgroupConfig()
+{
+	m_HitgroupMap.Purge();
+	KeyValues* pKV = new KeyValues("Hitgroups");
+	KeyValues::AutoDelete autoDelete(pKV);
+
+	const char *pszPath = "addons/cs2fixes/configs/zr/hitgroups.cfg";
+
+	if (!pKV->LoadFromFile(g_pFullFileSystem, pszPath))
+	{
+		Warning("Failed to load %s\n", pszPath);
+		return;
+	}
+	for (KeyValues* pKey = pKV->GetFirstSubKey(); pKey; pKey = pKey->GetNextKey())
+	{
+		const char *pszHitgroupName = pKey->GetName();
+		bool bEnabled = pKey->GetBool("enabled", false);
+		int iIndex = pKey->GetInt("index");
+		float flKnockback= pKey->GetFloat("knockback", .2f);
+		
+		ZRHitgroup *hitgroup = new ZRHitgroup;
+		if (!bEnabled)
+			continue;
+
+		hitgroup->flKnockback = flKnockback;
+
+		m_HitgroupMap.Insert(iIndex, hitgroup);
+
+		Message("Hitgroup: %s with index: %d and knockback: %f and enable: %d and ?: %d\n", pszHitgroupName, iIndex, hitgroup->flKnockback, bEnabled, 
+		m_HitgroupMap[iIndex]);
+	}
+
+	return;
+}
+
+ZRHitgroup* ZRHitgroupConfig::FindHitgroupIndex(int iIndex)
+{
+	uint16 index = m_HitgroupMap.Find(iIndex);
+	//Message("We are finding hitgroup index with index: %d and index is: %d\n", iIndex, index);
+
+	if (m_HitgroupMap.IsValidIndex(index))
+	{
+		//Message("We found valid index with (m_HitgroupMap[index]): %d\n", m_HitgroupMap[index]);
+		return m_HitgroupMap[index];
+	}
 
 	return nullptr;
 }
@@ -1066,17 +1119,25 @@ void ZR_OnPlayerSpawn(IGameEvent* pEvent)
 	});
 }
 
-void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamage, const char *szWeapon)
+void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamage, const char *szWeapon, int hitgroup)
 {
 	ZRWeapon *pWeapon = g_pZRWeaponConfig->FindWeapon(szWeapon);
+	ZRHitgroup *pHitgroup = g_pZRHitgroupConfig->FindHitgroupIndex(hitgroup);
 	// player shouldn't be able to pick up that weapon in the first place, but just in case
 	if (!pWeapon)
 		return;
 	float flWeaponKnockbackScale = pWeapon->flKnockback;
-	
+	float flHitgroupKnockbackScale;
+
+	if(pHitgroup)
+	{
+		flHitgroupKnockbackScale = pHitgroup->flKnockback;
+	}
+	else flHitgroupKnockbackScale = 1.0;
+
 	Vector vecKnockback;
 	AngleVectors(pHuman->m_angEyeAngles(), &vecKnockback);
-	vecKnockback *= (iDamage * g_flKnockbackScale * flWeaponKnockbackScale);
+	vecKnockback *= (iDamage * g_flKnockbackScale * flWeaponKnockbackScale * flHitgroupKnockbackScale);
 	pVictim->m_vecAbsVelocity = pVictim->m_vecAbsVelocity() + vecKnockback;
 }
 
@@ -1572,7 +1633,6 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 	CCSPlayerController *pVictimController = (CCSPlayerController*)pEvent->GetPlayerController("userid");
 	const char* szWeapon = pEvent->GetString("weapon");
 	int iDmgHealth = pEvent->GetInt("dmg_health");
-
 	int iHitGroup = pEvent->GetInt("hitgroup");
 
 	int money = pAttackerController->m_pInGameMoneyServices->m_iAccount;											
@@ -1587,10 +1647,7 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 			pAttackerController->m_pInGameMoneyServices->m_iAccount = money + iDmgHealth;
 	}
 
-	//CCSPlayerController* pController = CCSPlayerController::FromSlot(pAttackerController->GetPlayerSlot());
-
 	//Message("This attacker slot is: %d with hitgroup: %d\n", pAttackerController->GetPlayerSlot(), iHitGroup);
-
 	CreateHitMarker(pAttackerController->GetPlayerSlot(), iHitGroup);
 }
 
