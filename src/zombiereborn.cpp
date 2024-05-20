@@ -1145,6 +1145,9 @@ void ZR_OnPlayerSpawn(IGameEvent* pEvent)
 			ZR_Cure(pController);
 		return -1.0f;
 	});
+
+	//Reset player money on spawn.
+	pController->m_pInGameMoneyServices->m_iAccount = 16000;
 }
 
 void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamage, const char *szWeapon, int hitgroup, float classknockback)
@@ -1531,7 +1534,10 @@ void ZR_StartInitialCountdown()
 				
 				V_snprintf(sEntry, sizeof(sEntry), "zr.cd.%d", g_iInfectionCountDown);
 
-				pPawn->EmitSound(sEntry, 1.0, 0.2);
+				CRecipientFilter filter;
+   				filter.AddRecipient(pController->GetPlayerSlot());
+
+				pController->EmitSoundFilter(filter, sEntry);
 			}
 		}
 
@@ -1985,17 +1991,20 @@ CON_COMMAND_CHAT(zclass, "find and select your Z:R class")
 		const char* sCurrentClass = g_pUserPreferencesSystem->GetPreference(iSlot, sPreferenceKey);
 		if (sCurrentClass[0] != '\0')
 		{
-			ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX "Your current %s class is: %s. Available classes:", sTeamName, sCurrentClass);
+			ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX "Your current %s class is: %s. Available classes (Printed class list to your console):", sTeamName, sCurrentClass);
+			ClientPrint(player, HUD_PRINTCONSOLE, ZR_PREFIX "Your current %s class is: %s. Available classes:", sTeamName, sCurrentClass);
 		} 
 		else
 		{
-			ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX "Available %s classes:", sTeamName);
+			ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX "Available %s classes (Printed class list to your console):", sTeamName);
+			ClientPrint(player, HUD_PRINTCONSOLE, ZR_PREFIX "Available %s classes:", sTeamName);
 		}
 
 		FOR_EACH_VEC(teamClasses, i)
 		{
 			if (teamClasses[i]->IsApplicableTo(player)) {
 				ClientPrint(player, HUD_PRINTTALK, "- %s", teamClasses[i]->szClassName.c_str());
+				ClientPrint(player, HUD_PRINTCONSOLE, "- %s", teamClasses[i]->szClassName.c_str());
 			}
 		}
 	}

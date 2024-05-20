@@ -407,7 +407,7 @@ void ZEPlayer::StartGlow(Color color, int duration)
 	pKeyValuesGlow->SetInt("glowrange", 5000);
 	pKeyValuesGlow->SetInt("glowteam", -1);
 	pKeyValuesGlow->SetInt("glowstate", 3);
-	pKeyValuesGlow->SetInt("renderamt", 1);
+	pKeyValuesGlow->SetInt("renderamt", 255);
 
 	pModelGlow->DispatchSpawn(pKeyValuesGlow);
 	pModelRelay->DispatchSpawn(pKeyValuesRelay);
