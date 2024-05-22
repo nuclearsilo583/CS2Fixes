@@ -64,7 +64,7 @@ bool ZR_IsTeamAlive(int iTeamNum);
 EZRRoundState g_ZRRoundState = EZRRoundState::ROUND_START;
 static int g_iInfectionCountDown = 0;
 static bool g_bRespawnEnabled = true;
-static CHandle<Z_CBaseEntity> g_hRespawnToggler;
+static CHandle<CBaseEntity> g_hRespawnToggler;
 static CHandle<CTeam> g_hTeamCT;
 static CHandle<CTeam> g_hTeamT;
 
@@ -1066,7 +1066,7 @@ void ZR_OnRoundPrestart(IGameEvent* pEvent)
 
 void SetupRespawnToggler()
 {
-	Z_CBaseEntity* relay = CreateEntityByName("logic_relay");
+	CBaseEntity* relay = CreateEntityByName("logic_relay");
 	CEntityKeyValues* pKeyValues = new CEntityKeyValues();
 
 	pKeyValues->SetString("targetname", "zr_toggle_respawn");
@@ -1172,7 +1172,7 @@ void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamag
 	pVictim->m_vecAbsVelocity = pVictim->m_vecAbsVelocity() + vecKnockback;
 }
 
-void ZR_ApplyKnockbackExplosion(Z_CBaseEntity *pProjectile, CCSPlayerPawn *pVictim, int iDamage, bool bMolotov)
+void ZR_ApplyKnockbackExplosion(CBaseEntity *pProjectile, CCSPlayerPawn *pVictim, int iDamage, bool bMolotov)
 {
 	ZRWeapon *pWeapon = g_pZRWeaponConfig->FindWeapon(pProjectile->GetClassname());
 	if (!pWeapon)
@@ -1211,31 +1211,12 @@ void ZR_FakePlayerDeath(CCSPlayerController *pAttackerController, CCSPlayerContr
 void ZR_StripAndGiveKnife(CCSPlayerPawn *pPawn)
 {
 	CCSPlayer_ItemServices *pItemServices = pPawn->m_pItemServices();
-	CPlayer_WeaponServices* pWeaponServices = pPawn->m_pWeaponServices();
 
 	// it can sometimes be null when player joined on the very first round? 
-	if (!pItemServices || !pWeaponServices)
+	if (!pItemServices)
 		return;
 
-	CUtlVector<CHandle<CBasePlayerWeapon>>* weapons = pWeaponServices->m_hMyWeapons();
-
-	FOR_EACH_VEC(*weapons, i)
-	{
-		CHandle<CBasePlayerWeapon>& weaponHandle = (*weapons)[i];
-		CBasePlayerWeapon* pWeapon = weaponHandle.Get();
-
-		if (!pWeapon)
-			continue;
-
-		// If this is a map-spawned weapon (items), we should drop it instead
-		if (V_strcmp(pWeapon->m_sUniqueHammerID().Get(), ""))
-		{
-			// Despite having to pass a weapon into DropPlayerWeapon, it only drops the weapon if it's also the players active weapon
-			pWeaponServices->m_hActiveWeapon = weaponHandle;
-			pItemServices->DropPlayerWeapon(pWeapon);
-		}
-	}
-
+	pPawn->DropMapWeapons();
 	pItemServices->StripPlayerWeapons();
 	pItemServices->GiveNamedItem("weapon_knife");
 }
@@ -1295,6 +1276,24 @@ void ZR_InfectShake(CCSPlayerController *pController)
 	pController->GetServerSideClient()->GetNetChannel()->SendNetMessage(pNetMsg, &data, BUF_RELIABLE);
 }
 
+std::vector<SpawnPoint*> ZR_GetSpawns()
+{
+	CUtlVector<SpawnPoint*>* ctSpawns = g_pGameRules->m_CTSpawnPoints();
+	CUtlVector<SpawnPoint*>* tSpawns = g_pGameRules->m_TerroristSpawnPoints();
+	std::vector<SpawnPoint*> spawns;
+
+	FOR_EACH_VEC(*ctSpawns, i)
+		spawns.push_back((*ctSpawns)[i]);
+
+	FOR_EACH_VEC(*tSpawns, i)
+		spawns.push_back((*tSpawns)[i]);
+
+	if (!spawns.size())
+		Panic("There are no spawns!\n");
+
+	return spawns;
+}
+
 void ZR_Infect(CCSPlayerController *pAttackerController, CCSPlayerController *pVictimController, bool bDontBroadcast)
 {
 	// This can be null if the victim disconnected right before getting hit AND someone joined in their place immediately, thus replacing the controller
@@ -1335,17 +1334,27 @@ void ZR_Infect(CCSPlayerController *pAttackerController, CCSPlayerController *pV
 	}
 }
 
-void ZR_InfectMotherZombie(CCSPlayerController *pVictimController)
+void ZR_InfectMotherZombie(CCSPlayerController *pVictimController, std::vector<SpawnPoint*> spawns)
 {
-	pVictimController->SwitchTeam(CS_TEAM_T);
-
 	CCSPlayerPawn *pVictimPawn = (CCSPlayerPawn*)pVictimController->GetPawn();
 	if (!pVictimPawn)
 		return;
 
+	ZR_StripAndGiveKnife(pVictimPawn);
+
+	// pick random spawn point
+	if (g_iInfectSpawnType == EZRSpawnType::RESPAWN)
+	{
+		int randomindex = rand() % spawns.size();
+		Vector origin = spawns[randomindex]->GetAbsOrigin();
+		QAngle rotation = spawns[randomindex]->GetAbsRotation();
+
+		pVictimPawn->Teleport(&origin, &rotation, &vec3_origin);
+	}
+
+	pVictimController->SwitchTeam(CS_TEAM_T);
 	pVictimPawn->EmitSound("zr.amb.scream");
 
-	ZR_StripAndGiveKnife(pVictimPawn);
 	ZRZombieClass *pClass = g_pZRPlayerClassManager->GetZombieClass("MotherZombie");
 	if (pClass)
 		g_pZRPlayerClassManager->ApplyZombieClass(pClass, pVictimPawn);
@@ -1396,18 +1405,11 @@ void ZR_InitialInfection()
 	bool vecIsMZ[MAXPLAYERS] = { false };
 
 	// get spawn points
-	CUtlVector<SpawnPoint*> spawns;
-	if (g_iInfectSpawnType == EZRSpawnType::RESPAWN)
+	std::vector<SpawnPoint*> spawns = ZR_GetSpawns();
+	if (g_iInfectSpawnType == EZRSpawnType::RESPAWN && !spawns.size())
 	{
-		spawns.AddVectorToTail(*g_pGameRules->m_CTSpawnPoints());
-		spawns.AddVectorToTail(*g_pGameRules->m_TerroristSpawnPoints());
-
-		if (!spawns.Count())
-		{
-			ClientPrintAll(HUD_PRINTTALK, ZR_PREFIX"There are no spawns!");
-			Panic("There are no spawns!\n");
-			return;
-		}
+		ClientPrintAll(HUD_PRINTTALK, ZR_PREFIX"There are no spawns!");
+		return;
 	}
 
 	// infect
@@ -1455,17 +1457,7 @@ void ZR_InitialInfection()
 				continue;
 			}
 
-			// pick random spawn point
-			if (g_iInfectSpawnType == EZRSpawnType::RESPAWN)
-			{
-				randomindex = rand() % spawns.Count();
-				Vector origin = spawns[randomindex]->GetAbsOrigin();
-				QAngle rotation = spawns[randomindex]->GetAbsRotation();
-
-				pPawn->Teleport(&origin, &rotation, &vec3_origin);
-			}
-
-			ZR_InfectMotherZombie(pController);
+			ZR_InfectMotherZombie(pController, spawns);
 			pPlayer->SetImmunity(100);
 			vecIsMZ[pPlayer->GetPlayerSlot().Get()] = true;
 
@@ -1569,7 +1561,7 @@ bool ZR_Hook_OnTakeDamage_Alive(CTakeDamageInfo *pInfo, CCSPlayerPawn *pVictimPa
 	// grenade and molotov knockback
 	if (pAttackerPawn->m_iTeamNum() == CS_TEAM_CT && pVictimPawn->m_iTeamNum() == CS_TEAM_T)
 	{
-		Z_CBaseEntity *pInflictor = pInfo->m_hInflictor.Get();
+		CBaseEntity *pInflictor = pInfo->m_hInflictor.Get();
 		const char *pszInflictorClass = pInflictor ? pInflictor->GetClassname() : "";
 		// inflictor class from grenade damage is actually hegrenade_projectile
 		bool bGrenade = V_strncmp(pszInflictorClass, "hegrenade", 9) == 0;
@@ -1587,7 +1579,7 @@ bool ZR_Hook_OnTakeDamage_Alive(CTakeDamageInfo *pInfo, CCSPlayerPawn *pVictimPa
 		}
 
 		if (bGrenade || bInferno)
-			ZR_ApplyKnockbackExplosion((Z_CBaseEntity*)pInflictor, (CCSPlayerPawn*)pVictimPawn, (int)pInfo->m_flDamage, bInferno);
+			ZR_ApplyKnockbackExplosion((CBaseEntity*)pInflictor, (CCSPlayerPawn*)pVictimPawn, (int)pInfo->m_flDamage, bInferno);
 	}
 	return false;
 }
@@ -1612,7 +1604,7 @@ void ZR_Detour_CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSymbolLar
 	if (!g_hRespawnToggler.IsValid())
 		return;
 
-	Z_CBaseEntity* relay = g_hRespawnToggler.Get();
+	CBaseEntity* relay = g_hRespawnToggler.Get();
 	const char* inputName = pInputName->String();
 
 	// Must be an input into our zr_toggle_respawn relay
@@ -1877,21 +1869,15 @@ CON_COMMAND_CHAT(ztele, "- teleport to spawn")
 		return;
 	}
 
-	CUtlVector<SpawnPoint*> spawns;
-	spawns.AddVectorToTail(*g_pGameRules->m_CTSpawnPoints());
-	spawns.AddVectorToTail(*g_pGameRules->m_TerroristSpawnPoints());
-
-	// Let's be real here, this should NEVER happen
-	// But I ran into this when I switched to the real FindEntityByClassname and forgot to insert a *
-	if (spawns.Count() == 0)
+	std::vector<SpawnPoint*> spawns = ZR_GetSpawns();
+	if (!spawns.size())
 	{
 		ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX"There are no spawns!");
-		Panic("ztele used while there are no spawns!\n");
 		return;
 	}
 
-	//Pick and get position of random spawnpoint
-	int randomindex = rand() % spawns.Count();
+	//Pick and get random spawnpoint
+	int randomindex = rand() % spawns.size();
 	CHandle<SpawnPoint> spawnHandle = spawns[randomindex]->GetHandle();
 
 	//Here's where the mess starts
@@ -1934,7 +1920,6 @@ CON_COMMAND_CHAT(ztele, "- teleport to spawn")
 		else
 		{
 			ClientPrint(pPawn->GetController(), HUD_PRINTTALK, ZR_PREFIX "Teleport failed! You moved too far.");
-			return -1.0f;
 		}
 
 		return -1.0f;
@@ -2047,6 +2032,13 @@ CON_COMMAND_CHAT_FLAGS(infect, "infect a player", ADMFLAG_GENERIC)
 	}
 
 	const char* pszCommandPlayerName = player ? player->GetPlayerName() : "Console";
+	std::vector<SpawnPoint*> spawns = ZR_GetSpawns();
+
+	if (g_iInfectSpawnType == EZRSpawnType::RESPAWN && !spawns.size())
+	{
+		ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX"There are no spawns!");
+		return;
+	}
 
 	for (int i = 0; i < iNumClients; i++)
 	{
@@ -2064,7 +2056,7 @@ CON_COMMAND_CHAT_FLAGS(infect, "infect a player", ADMFLAG_GENERIC)
 		}
 
 		if (g_ZRRoundState == EZRRoundState::ROUND_START)
-			ZR_InfectMotherZombie(pTarget);
+			ZR_InfectMotherZombie(pTarget, spawns);
 		else
 			ZR_Infect(pTarget, pTarget, true);
 
@@ -2074,7 +2066,7 @@ CON_COMMAND_CHAT_FLAGS(infect, "infect a player", ADMFLAG_GENERIC)
 
 	PrintMultiAdminAction(nType, pszCommandPlayerName, "infected", g_ZRRoundState == EZRRoundState::ROUND_START ? " as mother zombies" : "", ZR_PREFIX);
 
-	// Note we skip MZ immunity & spawn TP code when first infection is manually triggered
+	// Note we skip MZ immunity when first infection is manually triggered
 	if (g_ZRRoundState == EZRRoundState::ROUND_START)
 	{
 		if (g_flRespawnDelay < 0.0f)
