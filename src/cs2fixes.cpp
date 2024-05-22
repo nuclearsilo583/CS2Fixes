@@ -633,6 +633,12 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 		if (msg->soundevent_hash() == -1847647044 || msg->soundevent_hash() == 856190898) // victim body shot sound call back.
 			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
 
+		if (msg->soundevent_hash() == -628727481) // burn hurt sound.
+			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+
+		if (msg->soundevent_hash() == -969129554) // nade bounce sound.
+			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+
 		//if (msg->soundevent_hash() == 1769891506 || msg->soundevent_hash() == -819232663 /*|| msg->soundevent_hash() == -660306313*/) // attacker / victim knife hit body / backstab sound call back.
 		//	*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
 	}

@@ -1118,31 +1118,3 @@ CON_COMMAND_CHAT_FLAGS(stripld, "<name> - strips leader status from a player", A
 
 	PrintSingleAdminAction(pszCommandPlayerName, pTarget->GetPlayerName(), "stripped leader from ", "", CHAT_PREFIX);
 }
-
-CON_COMMAND_CHAT(eyetest, "Get current aiming vector")
-{
-	if (!player)
-	{
-		ClientPrint(player, HUD_PRINTCONSOLE, CHAT_PREFIX "You cannot use this command from the server console.");
-		return;
-	}
-
-	if(!player->IsAlive())
-	{
-		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You can only use this command when you are alive.");
-		return;
-	}
-	CCSPlayerPawn *pPlayer = (CCSPlayerPawn*)player->GetPawn();
-	//CBaseEntity 
-	//CBaseEntity *pPlayer = (CBaseEntity*)player->GetPawn();
-
-	Vector vecEyePosition;
-	//AngleVectors(pPlayer->m_angEyeAngles(), &vecEyePosition);
-	//vecEyePosition = pPlayer->GetEyeAnglesOffset();
-	AngleVectors(pPlayer->GetEyeAnglesOffset(), &vecEyePosition);
-	//vecEyePosition[0] = pPlayer->m_angEyeAngles().x;
-	//vecEyePosition[1] = pPlayer->m_angEyeAngles().y;
-	//vecEyePosition[2] = pPlayer->m_angEyeAngles().z;
-
-	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You're aiming at X: %d, Y: %d, Z: %d.", vecEyePosition.x, vecEyePosition.y, vecEyePosition.z);
-}
