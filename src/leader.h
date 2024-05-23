@@ -42,3 +42,5 @@ void Leader_PostEventAbstract_Source1LegacyGameEvent(const uint64 *clients, cons
 void Leader_OnRoundStart(IGameEvent *pEvent);
 void Leader_BulletImpact(IGameEvent *pEvent);
 void Leader_Precache(IEntityResourceManifest *pResourceManifest);
+void RemoveLeader(const CCommand &args, CCSPlayerController *player);
+void ForceLeader(const CCommand &args, CCSPlayerController *player);

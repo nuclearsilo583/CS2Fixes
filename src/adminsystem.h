@@ -170,3 +170,5 @@ std::string FormatTime(std::time_t wTime, bool bInSeconds = true);
 
 // Gets reason from a user command such as mute, gag, ban, etc.
 std::string GetReason(const CCommand& args, int iArgsBefore, bool bStripUnicode);
+
+void ForceRestartRound(CCSPlayerController *player);

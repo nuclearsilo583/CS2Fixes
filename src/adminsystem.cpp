@@ -1414,6 +1414,124 @@ CON_COMMAND_CHAT_FLAGS(add_dc, "<name> <SteamID 64> <IP Address> - Adds a fake p
 }
 #endif
 
+CON_COMMAND_CHAT_FLAGS(rr, "- Force restart the round", ADMFLAG_GENERIC)
+{
+	ForceRestartRound(player);
+}
+
+CON_COMMAND_CHAT_FLAGS(resetround, "- Force restart the round", ADMFLAG_GENERIC)
+{
+	ForceRestartRound(player);
+}
+
+void ForceRestartRound(CCSPlayerController *player)
+{
+	bool bServerIdle = true;
+
+	for (int i = 0; i < gpGlobals->maxClients; i++)
+	{
+		ZEPlayer* pPlayer = g_playerManager->GetPlayer(i);
+
+		if (!pPlayer || !pPlayer->IsConnected() || !pPlayer->IsInGame() || pPlayer->IsFakeClient())
+			continue;
+
+		bServerIdle = false;
+		break;
+	}
+
+	// Don't end rounds while the server is idling
+	if (bServerIdle)
+		return;
+
+	const char *pszCommandPlayerName = player ? player->GetPlayerName() : "Console";
+
+	g_pGameRules->TerminateRound(3.0f, CSRoundEndReason::Draw);
+
+	ClientPrintAll(HUD_PRINTTALK, "%s" ADMIN_PREFIX "restarted the round.", CHAT_PREFIX, pszCommandPlayerName);
+}
+
+CON_COMMAND_CHAT_FLAGS(tele, "- Teleport player 1 to player 2", ADMFLAG_CHEATS)
+{
+	// Only players can use this command at all
+	if (!player)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You cannot use this command from the server console.");
+		return;
+	}
+
+	if (args.ArgC() < 3)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Usage: !tele <client1> <client>");
+		return;
+	}
+
+	int iCommandPlayer = player ? player->GetPlayerSlot() : -1;
+	int iNumClients = 0;
+	int iNumClients2 = 0;
+	int pSlots[MAXPLAYERS];
+	int pSlots2[MAXPLAYERS];
+
+	ETargetType nType = g_playerManager->TargetPlayerString(player->GetPlayerSlot(), args[1], iNumClients, pSlots);
+	ETargetType nType2 = g_playerManager->TargetPlayerString(player->GetPlayerSlot(), args[2], iNumClients2, pSlots2);
+
+	// Ignore spec
+	if (nType == ETargetType::SPECTATOR || nType2 == ETargetType::SPECTATOR)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You cannot target spectators.");
+		return;
+	}
+
+	if (!iNumClients || !iNumClients2)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Target not found.");
+		return;
+	}
+
+	if (nType == ETargetType::PLAYER && iNumClients > 1 || nType2 > ETargetType::RANDOM_CT)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "More than one client matched.");
+		return;
+	}
+
+	// Teleport
+	CCSPlayerController* pTarget2 = CCSPlayerController::FromSlot(pSlots2[0]);
+
+	if (!pTarget2)
+		return;
+	
+	for (int i = 0; i < iNumClients; i++)
+	{
+		CCSPlayerController* pTarget = CCSPlayerController::FromSlot(pSlots[i]);
+		
+
+		if (!pTarget)
+			continue;
+
+		Vector newOrigin = pTarget2->GetPawn()->GetAbsOrigin();
+
+		pTarget->GetPawn()->Teleport(&newOrigin, nullptr, nullptr);
+
+		//if (nType < ETargetType::ALL)
+		//	PrintSingleAdminAction(player->GetPlayerName(), pTarget->GetPlayerName(), "brought");
+	}
+
+	switch (nType)
+	{
+		case ETargetType::ALL:
+			ClientPrintAll(HUD_PRINTTALK, "%s" ADMIN_PREFIX "teleported everyone to %s.", CHAT_PREFIX, player->GetPlayerName(), nType2 == ETargetType::SELF ? "himself" : pTarget2->GetPlayerName());
+			break;
+		case ETargetType::T:
+			ClientPrintAll(HUD_PRINTTALK, "%s" ADMIN_PREFIX "teleported Terrorists to %s.", CHAT_PREFIX, player->GetPlayerName(), nType2 == ETargetType::SELF ? "himself" : pTarget2->GetPlayerName());
+			break;
+		case ETargetType::CT:
+			ClientPrintAll(HUD_PRINTTALK, "%s" ADMIN_PREFIX "teleported Counter-Terrorists to %s.", CHAT_PREFIX, player->GetPlayerName(), nType2 == ETargetType::SELF ? "himself" : pTarget2->GetPlayerName());
+			break;
+		default:
+			ClientPrintAll(HUD_PRINTTALK, "%s" ADMIN_PREFIX "teleported %s to %s.", CHAT_PREFIX, player->GetPlayerName(), nType == ETargetType::SELF ? "himself" : (CCSPlayerController::FromSlot(pSlots[0]))->GetPlayerName(), nType2 == ETargetType::SELF ? "himself" : pTarget2->GetPlayerName());
+			break;
+	}
+}
+
 CAdminSystem::CAdminSystem()
 {
 	LoadAdmins();

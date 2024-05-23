@@ -960,6 +960,26 @@ CON_COMMAND_CHAT(leadercolors, "- list leader colors in chat")
 
 CON_COMMAND_CHAT_FLAGS(forceld, "<name> [color]- forces leader status on a player", ADMFLAG_GENERIC)
 {
+	ForceLeader(args, player);
+}
+
+CON_COMMAND_CHAT_FLAGS(leader, "<name> [color]- forces leader status on a player", ADMFLAG_GENERIC)
+{
+	ForceLeader(args, player);
+}
+
+CON_COMMAND_CHAT_FLAGS(stripld, "<name> - strips leader status from a player", ADMFLAG_GENERIC)
+{
+	RemoveLeader(args, player);
+}
+
+CON_COMMAND_CHAT_FLAGS(removeleader, "<name> - remove leader status from a player", ADMFLAG_GENERIC)
+{
+	RemoveLeader(args, player);
+}
+
+void ForceLeader(const CCommand &args, CCSPlayerController *player)
+{
 	if (!g_bEnableLeader)
 		return;
 
@@ -1053,7 +1073,7 @@ CON_COMMAND_CHAT_FLAGS(forceld, "<name> [color]- forces leader status on a playe
 	PrintSingleAdminAction(pszCommandPlayerName, pTarget->GetPlayerName(), "forced", " to be a Leader", CHAT_PREFIX);
 }
 
-CON_COMMAND_CHAT_FLAGS(stripld, "<name> - strips leader status from a player", ADMFLAG_GENERIC)
+void RemoveLeader(const CCommand &args, CCSPlayerController *player)
 {
 	if (!g_bEnableLeader)
 		return;

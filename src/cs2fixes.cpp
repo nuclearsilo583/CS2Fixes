@@ -624,20 +624,21 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 
 		//Message("CMsgSosStartSoundEvent: soundevent_hash:%d\n", msg->soundevent_hash());
 		
+		// Force disable these event regardless of GetStopSoundMask()
 		if (msg->soundevent_hash() == 62938228 || msg->soundevent_hash() == -527125825) // Attacker headshot / body shot sound call back.
-			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+			*(uint64 *)clients = 0;
 		
 		if (msg->soundevent_hash() == 2019962436 || msg->soundevent_hash() == -2010269021) // victim headshot shot sound call back.
-			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+			*(uint64 *)clients = 0;
 		
 		if (msg->soundevent_hash() == -1847647044 || msg->soundevent_hash() == 856190898) // victim body shot sound call back.
-			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+			*(uint64 *)clients = 0;
 
 		if (msg->soundevent_hash() == -628727481) // burn hurt sound.
-			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+			*(uint64 *)clients = 0;
 
 		if (msg->soundevent_hash() == -969129554) // nade bounce sound.
-			*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+			*(uint64 *)clients = 0;
 
 		//if (msg->soundevent_hash() == 1769891506 || msg->soundevent_hash() == -819232663 /*|| msg->soundevent_hash() == -660306313*/) // attacker / victim knife hit body / backstab sound call back.
 		//	*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
