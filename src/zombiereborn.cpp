@@ -159,6 +159,7 @@ void ZR_Precache(IEntityResourceManifest* pResourceManifest)
 
 	pResourceManifest->AddResource("soundevents/soundevents_zr.vsndevts");
 	pResourceManifest->AddResource("soundevents/soundevents_mmb_countdown.vsndevts");
+	pResourceManifest->AddResource("soundevents/game_sounds_weapons_low.vsndevts");
 }
 
 void ZR_CreateOverlay(const char* pszOverlayParticlePath, float flAlpha, float flRadius, float flLifeTime, Color clrTint, const char* pszMaterialOverride)
