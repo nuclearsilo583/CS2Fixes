@@ -1536,7 +1536,7 @@ CON_COMMAND_CHAT(cash, "Set target cash")
 {
 	if (args.ArgC() < 2)
 	{
-		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Usage: !hp <target>");
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Usage: !cash <target> <amount>");
 		return;
 	}
 
@@ -1591,6 +1591,12 @@ CON_COMMAND_CHAT(cash, "Set target cash")
 
 CON_COMMAND_CHAT(hp, "Set target HP")
 {
+	if (args.ArgC() < 2)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Usage: !hp <target> <health>");
+		return;
+	}
+
 	int iCommandPlayer = player ? player->GetPlayerSlot() : -1;
 	int iNumClients = 0;
 	int pSlots[MAXPLAYERS];
