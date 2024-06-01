@@ -829,8 +829,8 @@ bool CZRRegenTimer::Execute()
 	if (!pPawn || !pPawn->IsAlive())
 		return false;
 
-	int iHealth = pPawn->m_iHealth() + m_iRegenAmount;
-	pPawn->m_iHealth = pPawn->m_iMaxHealth() < iHealth ? pPawn->m_iMaxHealth() : iHealth;
+	int iHealth = pPawn->m_iHealth() < pPawn->m_iMaxHealth() ? pPawn->m_iHealth() + m_iRegenAmount : pPawn->m_iHealth();
+	pPawn->m_iHealth = iHealth;
 	return true;
 }
 
@@ -1115,6 +1115,10 @@ void ZR_OnRoundStart(IGameEvent* pEvent)
 	}
 }
 
+static int g_iSpawnMoney = 10000;
+
+FAKE_INT_CVAR(cs2f_spawn_money, "How much money set when player respawn", g_iSpawnMoney, 10000, false)
+
 void ZR_OnPlayerSpawn(IGameEvent* pEvent)
 {
 	CCSPlayerController* pController = (CCSPlayerController*)pEvent->GetPlayerController("userid");
@@ -1151,7 +1155,7 @@ void ZR_OnPlayerSpawn(IGameEvent* pEvent)
 	});
 
 	//Reset player money on spawn.
-	pController->m_pInGameMoneyServices->m_iAccount = 16000;
+	pController->m_pInGameMoneyServices->m_iAccount = g_iSpawnMoney;
 }
 
 void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamage, const char *szWeapon, int hitgroup, float classknockback)

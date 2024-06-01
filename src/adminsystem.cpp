@@ -1532,6 +1532,116 @@ CON_COMMAND_CHAT_FLAGS(tele, "- Teleport player 1 to player 2", ADMFLAG_CHEATS)
 	}
 }
 
+CON_COMMAND_CHAT(cash, "Set target cash")
+{
+	if (args.ArgC() < 2)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Usage: !hp <target>");
+		return;
+	}
+
+	int iCommandPlayer = player ? player->GetPlayerSlot() : -1;
+	int iNumClients = 0;
+	int pSlots[MAXPLAYERS];
+
+	ETargetType nType = g_playerManager->TargetPlayerString(iCommandPlayer, args[1], iNumClients, pSlots);
+
+	int amount = atoi(args[2]);
+
+	if (amount < 0)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You cannot set a negative number.");
+		return;
+	}
+
+	if (!iNumClients)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Target not found.");
+		return;
+	}
+
+	if (nType == ETargetType::PLAYER && iNumClients > 1)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "More than one client matched.");
+		return;
+	}
+
+	const char *pszCommandPlayerName = player ? player->GetPlayerName() : "Console";
+	
+	for (int i = 0; i < iNumClients; i++)
+	{
+		CCSPlayerController* pTarget = CCSPlayerController::FromSlot(pSlots[i]);
+		
+		if (!pTarget)
+			continue;
+
+		if (pTarget->m_iTeamNum() == CS_TEAM_SPECTATOR)
+		{
+			continue;
+		}
+
+		pTarget->m_pInGameMoneyServices->m_iAccount = amount;
+		
+		if (nType < ETargetType::ALL)
+			PrintSingleAdminAction(pszCommandPlayerName, pTarget->GetPlayerName(), "set cash on");
+	}
+
+	PrintMultiAdminAction(nType, pszCommandPlayerName, "set cash on");
+}
+
+CON_COMMAND_CHAT(hp, "Set target HP")
+{
+	int iCommandPlayer = player ? player->GetPlayerSlot() : -1;
+	int iNumClients = 0;
+	int pSlots[MAXPLAYERS];
+
+	ETargetType nType = g_playerManager->TargetPlayerString(iCommandPlayer, args[1], iNumClients, pSlots);
+
+	int health = atoi(args[2]);
+
+	if (health <= 0)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You cannot set a negative number or 0.");
+		return;
+	}
+
+	if (!iNumClients)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Target not found.");
+		return;
+	}
+
+	if (nType == ETargetType::PLAYER && iNumClients > 1)
+	{
+		ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "More than one client matched.");
+		return;
+	}
+
+	const char *pszCommandPlayerName = player ? player->GetPlayerName() : "Console";
+	
+	for (int i = 0; i < iNumClients; i++)
+	{
+		CCSPlayerController* pTarget = CCSPlayerController::FromSlot(pSlots[i]);
+		
+		if (!pTarget)
+			continue;
+
+		if (pTarget->m_iTeamNum() == CS_TEAM_SPECTATOR)
+		{
+			continue;
+		}
+
+		CBaseEntity *pEnt = (CBaseEntity *)pTarget->GetPawn();
+
+		pEnt->m_iHealth = health;
+		
+		if (nType < ETargetType::ALL)
+			PrintSingleAdminAction(pszCommandPlayerName, pTarget->GetPlayerName(), "set health on");
+	}
+
+	PrintMultiAdminAction(nType, pszCommandPlayerName, "set health on");
+}
+
 CAdminSystem::CAdminSystem()
 {
 	LoadAdmins();
