@@ -48,6 +48,7 @@
 #include "httpmanager.h"
 #include "idlemanager.h"
 #include "discord.h"
+#include "panoramavote.h"
 #include "map_votes.h"
 #include "user_preferences.h"
 #include "entity/cgamerules.h"
@@ -300,6 +301,7 @@ bool CS2Fixes::Load(PluginId id, ISmmAPI *ismm, char *error, size_t maxlen, bool
 	g_pZRHitgroupConfig = new ZRHitgroupConfig();
 	g_pEntityListener = new CEntityListener();
 	g_pIdleSystem = new CIdleSystem();
+	g_pPanoramaVoteHandler = new CPanoramaVoteHandler();
 
 	RegisterWeaponCommands();
 
@@ -397,6 +399,9 @@ bool CS2Fixes::Unload(char *error, size_t maxlen)
 
 	if (g_pIdleSystem)
 		delete g_pIdleSystem;
+
+	if (g_pPanoramaVoteHandler)
+		delete g_pPanoramaVoteHandler;
 
 	if (g_iCGamePlayerEquipUseId != -1)
 		SH_REMOVE_HOOK_ID(g_iCGamePlayerEquipUseId);
@@ -508,20 +513,8 @@ void CS2Fixes::Hook_StartupServer(const GameSessionConfiguration_t& config, ISou
 
 	RegisterEventListeners();
 
-	// Disable RTV and Extend votes after map has just started
-	g_RTVState = ERTVState::MAP_START;
-	g_ExtendState = EExtendState::MAP_START;
-
-	// Allow RTV and Extend votes after 2 minutes post map start
-	new CTimer(120.0f, false, true, []()
-	{
-		if (g_RTVState != ERTVState::BLOCKED_BY_ADMIN)
-			g_RTVState = ERTVState::RTV_ALLOWED;
-
-		if (g_ExtendState < EExtendState::POST_EXTEND_NO_EXTENDS_LEFT)
-			g_ExtendState = EExtendState::EXTEND_ALLOWED;
-		return -1.0f;
-	});
+	g_pPanoramaVoteHandler->Reset();
+	VoteManager_Init();
 
 	g_pIdleSystem->Reset();
 }
@@ -917,7 +910,7 @@ bool CS2Fixes::Hook_OnTakeDamage_Alive(CTakeDamageInfoContainer *pInfoContainer)
 
 	// This is a shit place to be doing this, but player_death event is too late and there is no pre-hook alternative
 	// Check if this is going to kill the player
-	if (g_bDropMapWeapons && pPawn && pPawn->m_iHealth - pInfoContainer->pInfo->m_flDamage <= 0)
+	if (g_bDropMapWeapons && pPawn && pPawn->m_iHealth() <= 0)
 		pPawn->DropMapWeapons();
 
 	RETURN_META_VALUE(MRES_IGNORED, true);
