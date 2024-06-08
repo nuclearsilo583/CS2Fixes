@@ -1117,7 +1117,7 @@ void ZR_OnRoundStart(IGameEvent* pEvent)
 
 static int g_iSpawnMoney = 10000;
 
-FAKE_INT_CVAR(cs2f_spawn_money, "How much money set when player respawn", g_iSpawnMoney, 10000, false)
+FAKE_INT_CVAR(zr_spawn_money, "How much money set when player respawn", g_iSpawnMoney, 10000, false)
 
 void ZR_OnPlayerSpawn(IGameEvent* pEvent)
 {
@@ -1158,6 +1158,9 @@ void ZR_OnPlayerSpawn(IGameEvent* pEvent)
 	pController->m_pInGameMoneyServices->m_iAccount = g_iSpawnMoney;
 }
 
+static int g_flAirMultiplier = 1.0;
+FAKE_FLOAT_CVAR(zr_knockback_scale_airmultiplier, "How much scale for knockback on client in air", g_flAirMultiplier, 1.0f, false)
+
 void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamage, const char *szWeapon, int hitgroup, float classknockback)
 {
 	ZRWeapon *pWeapon = g_pZRWeaponConfig->FindWeapon(szWeapon);
@@ -1174,9 +1177,16 @@ void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamag
 	}
 	else flHitgroupKnockbackScale = 1.0;
 
+	float fAirKnockback;
+	uint32 flags = pVictim->m_fFlags();
+	if(flags & FL_ONGROUND)
+		fAirKnockback = 1.0;
+	else
+		fAirKnockback = g_flAirMultiplier;
+	
 	Vector vecKnockback;
 	AngleVectors(pHuman->m_angEyeAngles(), &vecKnockback);
-	vecKnockback *= (iDamage * g_flKnockbackScale * flWeaponKnockbackScale * flHitgroupKnockbackScale * classknockback);
+	vecKnockback *= (iDamage * g_flKnockbackScale * flWeaponKnockbackScale * flHitgroupKnockbackScale * classknockback * fAirKnockback);
 	pVictim->m_vecAbsVelocity = pVictim->m_vecAbsVelocity() + vecKnockback;
 }
 
@@ -1680,7 +1690,7 @@ void ZR_Hook_ClientCommand_JoinTeam(CPlayerSlot slot, const CCommand &args)
 }
 
 static bool g_bDamageIncome = false;
-FAKE_BOOL_CVAR(cs2f_damage_income, "Whether to enable income from damaging zombies", g_bDamageIncome, false, false);
+FAKE_BOOL_CVAR(zr_damage_income, "Whether to enable income from damaging zombies", g_bDamageIncome, false, false);
 
 void ZR_OnPlayerHurt(IGameEvent* pEvent)
 {
