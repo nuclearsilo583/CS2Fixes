@@ -1532,7 +1532,7 @@ CON_COMMAND_CHAT_FLAGS(tele, "- Teleport player 1 to player 2", ADMFLAG_CHEATS)
 	}
 }
 
-CON_COMMAND_CHAT(cash, "Set target cash")
+CON_COMMAND_CHAT_FLAGS(cash, "Set target cash", ADMFLAG_CHEATS)
 {
 	if (args.ArgC() < 2)
 	{
@@ -1589,7 +1589,7 @@ CON_COMMAND_CHAT(cash, "Set target cash")
 	PrintMultiAdminAction(nType, pszCommandPlayerName, "set cash on");
 }
 
-CON_COMMAND_CHAT(hp, "Set target HP")
+CON_COMMAND_CHAT_FLAGS(hp, "Set target HP", ADMFLAG_CHEATS)
 {
 	if (args.ArgC() < 2)
 	{

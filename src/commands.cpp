@@ -351,6 +351,52 @@ CON_COMMAND_CHAT(toggledecals, "- toggle world decals, if you're into having 10 
 	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You have %s world decals.", bSet ? "disabled" : "enabled");
 }
 
+bool g_bEnableNoShake = false;
+FAKE_BOOL_CVAR(cs2f_noshake_enable, "Whether to enable noshake option", g_bEnableNoShake, false, false)
+
+CON_COMMAND_CHAT(noshake, "- toggle noshake")
+{
+	if (!g_bEnableNoShake)
+		return;
+
+	if (!player)
+	{
+		ClientPrint(player, HUD_PRINTCONSOLE, CHAT_PREFIX "You cannot use this command from the server console.");
+		return;
+	}
+
+	int iPlayer = player->GetPlayerSlot();
+	bool bSet = !g_playerManager->IsPlayerUsingNoShake(iPlayer);
+
+	g_playerManager->SetPlayerNoShake(iPlayer, bSet);
+
+	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "You have %s noshake.", bSet ? "enabled" : "disabled");
+}
+
+CON_COMMAND_CHAT(stopmusic, "- print map music info")
+{
+	PrintInfoMapmusic(args, player);
+}
+
+CON_COMMAND_CHAT(music, "-print map music info")
+{
+	PrintInfoMapmusic(args, player);
+}
+
+void PrintInfoMapmusic(const CCommand &args, CCSPlayerController *player)
+{
+	if (!g_bEnableStopSound)
+		return;
+
+	if (!player)
+	{
+		ClientPrint(player, HUD_PRINTCONSOLE, CHAT_PREFIX "You cannot use this command from the server console.");
+		return;
+	}
+
+	ClientPrint(player, HUD_PRINTTALK, CHAT_PREFIX "Type \x09snd_musicvolume <0.0-1.0> \x01 in console to adjust volume. Example: \x09snd_musicvolume 0.2");
+}
+
 bool g_bEnableHide = false;
 static int g_iDefaultHideDistance = 250;
 static int g_iMaxHideDistance = 2000;

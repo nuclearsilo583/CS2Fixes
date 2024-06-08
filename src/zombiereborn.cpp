@@ -1158,8 +1158,8 @@ void ZR_OnPlayerSpawn(IGameEvent* pEvent)
 	pController->m_pInGameMoneyServices->m_iAccount = g_iSpawnMoney;
 }
 
-static int g_flAirMultiplier = 1.0;
-FAKE_FLOAT_CVAR(zr_knockback_scale_airmultiplier, "How much scale for knockback on client in air", g_flAirMultiplier, 1.0f, false)
+static float g_flAirMultiplier = 1.0;
+FAKE_FLOAT_CVAR(zr_knockback_scale_airmultiplier, "How much scale for knockback on client in air", g_flAirMultiplier, 0.2f, false)
 
 void ZR_ApplyKnockback(CCSPlayerPawn *pHuman, CCSPlayerPawn *pVictim, int iDamage, const char *szWeapon, int hitgroup, float classknockback)
 {

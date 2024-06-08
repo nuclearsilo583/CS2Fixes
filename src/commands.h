@@ -40,6 +40,7 @@ extern bool g_bEnableAdminCommands;
 
 extern bool g_bEnableHide;
 extern bool g_bEnableStopSound;
+extern bool g_bEnableNoShake;
 
 void ClientPrintAll(int destination, const char *msg, ...);
 void ClientPrint(CBasePlayerController *player, int destination, const char *msg, ...);
@@ -106,6 +107,7 @@ struct WeaponMapEntry_t
 
 void RegisterWeaponCommands();
 void ParseChatCommand(const char *, CCSPlayerController *);
+void PrintInfoMapmusic(const CCommand &args, CCSPlayerController *player);
 
 #define CON_COMMAND_CHAT_FLAGS(name, description, flags)																						\
 	void name##_callback(const CCommand &args, CCSPlayerController *player);																			\

@@ -60,6 +60,7 @@
 #include "gameevents.pb.h"
 #include "leader.h"
 #include "hitmarker.h"
+#include "usermessages.pb.h"
 
 #include "tier0/memdbgon.h"
 
@@ -633,6 +634,10 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 
 		//if (msg->soundevent_hash() == 1769891506 || msg->soundevent_hash() == -819232663 /*|| msg->soundevent_hash() == -660306313*/) // attacker / victim knife hit body / backstab sound call back.
 		//	*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
+	}
+	else if (g_bEnableNoShake && info->m_MessageId == UM_Shake)
+	{
+		*(uint64 *)clients &= ~g_playerManager->GetNoShakeMask();
 	}
 }
 
