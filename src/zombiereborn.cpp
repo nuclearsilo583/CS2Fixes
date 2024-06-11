@@ -645,6 +645,11 @@ void CZRPlayerClassManager::ApplyBaseClass(ZRClass* pClass, CCSPlayerPawn *pPawn
 	// I shouldn't have to wonder why, but for whatever reason
 	// this shit caused crashes on ROUND END or MAP CHANGE after the 26/04/2024 update
 	//pPawn->m_flVelocityModifier = pClass->flSpeed;
+	const auto pController = reinterpret_cast<CCSPlayerController*>(pPawn->GetController());
+	if (const auto pPlayer = pController != nullptr ? pController->GetZEPlayer() : nullptr)
+	{
+		pPlayer->SetMaxSpeed(pClass->flSpeed);
+	}
 
 	// This has to be done a bit later
 	UTIL_AddEntityIOEvent(pPawn, "SetScale", nullptr, nullptr, pClass->flScale);
@@ -687,8 +692,11 @@ void CZRPlayerClassManager::ApplyHumanClass(ZRHumanClass *pClass, CCSPlayerPawn 
 
 	if (pPlayer && pPlayer->IsLeader())
 	{
-		new CTimer(0.02f, false, false, [pPawn]()
+		CHandle<CCSPlayerPawn> hPawn = pPawn->GetHandle();
+
+		new CTimer(0.02f, false, false, [hPawn]()
 		{
+			CCSPlayerPawn *pPawn = hPawn.Get();
 			if (pPawn)
 				Leader_ApplyLeaderVisuals(pPawn);
 			return -1.0f;
@@ -1111,13 +1119,8 @@ void ZR_OnRoundStart(IGameEvent* pEvent)
 	}
 }
 
-void ZR_OnPlayerSpawn(IGameEvent* pEvent)
+void ZR_OnPlayerSpawn(CCSPlayerController* pController)
 {
-	CCSPlayerController* pController = (CCSPlayerController*)pEvent->GetPlayerController("userid");
-
-	if (!pController)
-		return;
-
 	// delay infection a bit
 	bool bInfect = g_ZRRoundState == EZRRoundState::POST_INFECTION;
 
@@ -1217,7 +1220,7 @@ void ZR_StripAndGiveKnife(CCSPlayerPawn *pPawn)
 		return;
 
 	pPawn->DropMapWeapons();
-	pItemServices->StripPlayerWeapons();
+	pItemServices->StripPlayerWeapons(true);
 	pItemServices->GiveNamedItem("weapon_knife");
 }
 
