@@ -646,6 +646,11 @@ void CZRPlayerClassManager::ApplyBaseClass(ZRClass* pClass, CCSPlayerPawn *pPawn
 	// I shouldn't have to wonder why, but for whatever reason
 	// this shit caused crashes on ROUND END or MAP CHANGE after the 26/04/2024 update
 	//pPawn->m_flVelocityModifier = pClass->flSpeed;
+	const auto pController = reinterpret_cast<CCSPlayerController*>(pPawn->GetController());
+	if (const auto pPlayer = pController != nullptr ? pController->GetZEPlayer() : nullptr)
+	{
+		pPlayer->SetMaxSpeed(pClass->flSpeed);
+	}
 
 	// This has to be done a bit later
 	UTIL_AddEntityIOEvent(pPawn, "SetScale", nullptr, nullptr, pClass->flScale);
@@ -1116,16 +1121,10 @@ void ZR_OnRoundStart(IGameEvent* pEvent)
 }
 
 static int g_iSpawnMoney = 10000;
-
 FAKE_INT_CVAR(zr_spawn_money, "How much money set when player respawn", g_iSpawnMoney, 10000, false)
 
-void ZR_OnPlayerSpawn(IGameEvent* pEvent)
+void ZR_OnPlayerSpawn(CCSPlayerController* pController)
 {
-	CCSPlayerController* pController = (CCSPlayerController*)pEvent->GetPlayerController("userid");
-
-	if (!pController)
-		return;
-
 	// delay infection a bit
 	bool bInfect = g_ZRRoundState == EZRRoundState::POST_INFECTION;
 
