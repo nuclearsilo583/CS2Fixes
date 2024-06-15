@@ -600,7 +600,7 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 	}
 	else if (info->m_MessageId == TE_EffectDispatchId) // Stop blood screen particle effect.
 	{
-		CMsgTEEffectDispatch* msg = (CMsgTEEffectDispatch*)pData;
+		auto msg = const_cast<CNetMessage*>(pData)->ToPB<CMsgTEEffectDispatch>();
 		CMsgEffectData EffectData = msg->effectdata();
 		int effectindex = EffectData.effectindex();
 		int effectname = EffectData.effectname();
@@ -612,7 +612,7 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 	}
 	else if(info->m_MessageId == GE_SosStartSoundEvent) // block some of game sound events.
 	{
-		CMsgSosStartSoundEvent* msg = (CMsgSosStartSoundEvent*)pData;
+		auto msg = const_cast<CNetMessage*>(pData)->ToPB<CMsgSosStartSoundEvent>();
 
 		//Message("CMsgSosStartSoundEvent: soundevent_hash:%d\n", msg->soundevent_hash());
 		
@@ -629,11 +629,8 @@ void CS2Fixes::Hook_PostEvent(CSplitScreenSlot nSlot, bool bLocalOnly, int nClie
 		if (msg->soundevent_hash() == -628727481) // burn hurt sound.
 			*(uint64 *)clients = 0;
 
-		if (msg->soundevent_hash() == -969129554) // nade bounce sound.
+		if (msg->soundevent_hash() == 611) // nade bounce sound.
 			*(uint64 *)clients = 0;
-
-		//if (msg->soundevent_hash() == 1769891506 || msg->soundevent_hash() == -819232663 /*|| msg->soundevent_hash() == -660306313*/) // attacker / victim knife hit body / backstab sound call back.
-		//	*(uint64*)clients &= ~g_playerManager->GetStopSoundMask();
 	}
 	else if (g_bEnableNoShake && info->m_MessageId == UM_Shake)
 	{
@@ -1000,7 +997,7 @@ const char *CS2Fixes::GetLicense()
 const char *CS2Fixes::GetVersion()
 {
 #ifndef CS2FIXES_VERSION
-#define CS2FIXES_VERSION "1.8.4-dev nuclear silo edits (1.0.3)"
+#define CS2FIXES_VERSION "1.8.5-dev nuclear silo edits (1.0.4)"
 #endif
 
 	return CS2FIXES_VERSION; // defined by the build script
