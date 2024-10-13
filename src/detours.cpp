@@ -33,6 +33,7 @@
 #include "entity/ccsplayerpawn.h"
 #include "entity/cbasemodelentity.h"
 #include "entity/ccsweaponbase.h"
+#include "entity/cenvhudhint.h"
 #include "entity/ctriggerpush.h"
 #include "entity/cgamerules.h"
 #include "entity/ctakedamageinfo.h"
@@ -63,7 +64,6 @@ DECLARE_DETOUR(UTIL_SayTextFilter, Detour_UTIL_SayTextFilter);
 DECLARE_DETOUR(UTIL_SayText2Filter, Detour_UTIL_SayText2Filter);
 DECLARE_DETOUR(IsHearingClient, Detour_IsHearingClient);
 DECLARE_DETOUR(TriggerPush_Touch, Detour_TriggerPush_Touch);
-DECLARE_DETOUR(CGameRules_Constructor, Detour_CGameRules_Constructor);
 DECLARE_DETOUR(CBaseEntity_TakeDamageOld, Detour_CBaseEntity_TakeDamageOld);
 DECLARE_DETOUR(CCSPlayer_WeaponServices_CanUse, Detour_CCSPlayer_WeaponServices_CanUse);
 DECLARE_DETOUR(CEntityIdentity_AcceptInput, Detour_CEntityIdentity_AcceptInput);
@@ -72,15 +72,11 @@ DECLARE_DETOUR(ProcessMovement, Detour_ProcessMovement);
 DECLARE_DETOUR(ProcessUsercmds, Detour_ProcessUsercmds);
 DECLARE_DETOUR(CGamePlayerEquip_InputTriggerForAllPlayers, Detour_CGamePlayerEquip_InputTriggerForAllPlayers);
 DECLARE_DETOUR(CGamePlayerEquip_InputTriggerForActivatedPlayer, Detour_CGamePlayerEquip_InputTriggerForActivatedPlayer);
-DECLARE_DETOUR(CCSGameRules_GoToIntermission, Detour_CCSGameRules_GoToIntermission);
 DECLARE_DETOUR(GetFreeClient, Detour_GetFreeClient);
 DECLARE_DETOUR(CCSPlayerPawn_GetMaxSpeed, Detour_CCSPlayerPawn_GetMaxSpeed);
-
-void FASTCALL Detour_CGameRules_Constructor(CGameRules *pThis)
-{
-	g_pGameRules = (CCSGameRules*)pThis;
-	CGameRules_Constructor(pThis);
-}
+DECLARE_DETOUR(FindUseEntity, Detour_FindUseEntity);
+DECLARE_DETOUR(TraceFunc, Detour_TraceFunc);
+DECLARE_DETOUR(TraceShape, Detour_TraceShape);
 
 static bool g_bBlockMolotovSelfDmg = false;
 static bool g_bBlockAllDamage = false;
@@ -288,7 +284,7 @@ void SayChatMessageWithTimer(IRecipientFilter &filter, const char *pText, CCSPla
 		}
 	}
 
-	float fCurrentRoundClock = g_pGameRules->m_iRoundTime - (gpGlobals->curtime - g_pGameRules->m_fRoundStartTime.Get().m_Value);
+	float fCurrentRoundClock = g_pGameRules->m_iRoundTime - (gpGlobals->curtime - g_pGameRules->m_fRoundStartTime.Get().GetTime());
 
 	// Only display trigger time if the timer is greater than 4 seconds, and time expires within the round
 	if ((uiTriggerTimerLength > 4) && (fCurrentRoundClock > uiTriggerTimerLength))
@@ -408,6 +404,17 @@ bool FASTCALL Detour_CEntityIdentity_AcceptInput(CEntityIdentity* pThis, CUtlSym
 			return true;
 		}
 	}
+    else if (!V_strcasecmp(pInputName->String(), "SetMessage"))
+	{
+		if (const auto pHudHint = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsHudHint())
+		{
+			if ((value->m_type == FIELD_CSTRING || value->m_type == FIELD_STRING) && value->m_pszString)
+			{
+				pHudHint->m_iszMessage(GameEntitySystem()->AllocPooledString(value->m_pszString));
+			}
+			return true;
+		}
+	}
 	else if (const auto pGameUI = reinterpret_cast<CBaseEntity*>(pThis->m_pInstance)->AsGameUI())
 	{
 		if (!V_strcasecmp(pInputName->String(), "Activate"))
@@ -468,6 +475,7 @@ FAKE_BOOL_CVAR(cs2f_disable_subtick_move, "Whether to disable subtick movement",
 class CUserCmd
 {
 public:
+	[[maybe_unused]] char pad0[0x10];
 	CSGOUserCmdPB cmd;
 	[[maybe_unused]] char pad1[0x38];
 #ifdef PLATFORM_WINDOWS
@@ -475,27 +483,20 @@ public:
 #endif
 };
 
-void* FASTCALL Detour_ProcessUsercmds(CBasePlayerPawn *pPawn, CUserCmd *cmds, int numcmds, bool paused, float margin)
+void* FASTCALL Detour_ProcessUsercmds(CCSPlayerController *pController, CUserCmd *cmds, int numcmds, bool paused, float margin)
 {
 	// Push fix only works properly if subtick movement is also disabled
 	if (!g_bDisableSubtick && !g_bUseOldPush)
-		return ProcessUsercmds(pPawn, cmds, numcmds, paused, margin);
+		return ProcessUsercmds(pController, cmds, numcmds, paused, margin);
 
 	VPROF_SCOPE_BEGIN("Detour_ProcessUsercmds");
 
-	static int offset = g_GameConfig->GetOffset("UsercmdOffset");
-
 	for (int i = 0; i < numcmds; i++)
-	{
-		CSGOUserCmdPB *pUserCmd = &cmds[i].cmd;
-
-		for (int j = 0; j < pUserCmd->mutable_base()->subtick_moves_size(); j++)
-			pUserCmd->mutable_base()->mutable_subtick_moves(j)->set_when(0.f);
-	}
+		cmds[i].cmd.mutable_base()->mutable_subtick_moves()->Clear();
 
 	VPROF_SCOPE_END();
 
-	return ProcessUsercmds(pPawn, cmds, numcmds, paused, margin);
+	return ProcessUsercmds(pController, cmds, numcmds, paused, margin);
 }
 
 void FASTCALL Detour_CGamePlayerEquip_InputTriggerForAllPlayers(CGamePlayerEquip* pEntity, InputData_t* pInput)
@@ -507,14 +508,6 @@ void FASTCALL Detour_CGamePlayerEquip_InputTriggerForActivatedPlayer(CGamePlayer
 {
 	if (CGamePlayerEquipHandler::TriggerForActivatedPlayer(pEntity, pInput))
 		CGamePlayerEquip_InputTriggerForActivatedPlayer(pEntity, pInput);
-}
-
-int64_t* FASTCALL Detour_CCSGameRules_GoToIntermission(int64_t unk1, char unk2)
-{
-	if (!g_pMapVoteSystem->IsIntermissionAllowed())
-		return nullptr;
-
-	return CCSGameRules_GoToIntermission(unk1, unk2);
 }
 
 CServerSideClient* FASTCALL Detour_GetFreeClient(int64_t unk1, const __m128i* unk2, unsigned int unk3, int64_t unk4, char unk5, void* unk6)
@@ -547,6 +540,40 @@ float FASTCALL Detour_CCSPlayerPawn_GetMaxSpeed(CCSPlayerPawn* pPawn)
 	}
 
 	return flMaxSpeed;
+}
+
+bool g_bPreventUsingPlayers = false;
+FAKE_BOOL_CVAR(cs2f_prevent_using_players, "Whether to prevent +use from hitting players (0=can use players, 1=cannot use players)", g_bPreventUsingPlayers, false, false);
+
+bool g_bFindingUseEntity = false;
+int64 FASTCALL Detour_FindUseEntity(CCSPlayer_UseServices* pThis, float a2)
+{
+	g_bFindingUseEntity = true;
+	int64 ent = FindUseEntity(pThis, a2);
+	g_bFindingUseEntity = false;
+	return ent;
+}
+
+bool FASTCALL Detour_TraceFunc(int64* a1, int* a2, float* a3, uint64 traceMask)
+{
+	if (g_bPreventUsingPlayers && g_bFindingUseEntity)
+	{
+		uint64 newMask = traceMask & ( ~(CONTENTS_PLAYER & CONTENTS_NPC) );
+		return TraceFunc(a1, a2, a3, newMask);
+	}
+
+	return TraceFunc(a1, a2, a3, traceMask);
+}
+
+bool FASTCALL Detour_TraceShape(int64* a1, int64 a2, int64 a3, int64 a4, CTraceFilter* filter, int64 a6)
+{
+	if (g_bPreventUsingPlayers && g_bFindingUseEntity)
+	{
+		filter->DisableInteractsWithLayer(LAYER_INDEX_CONTENTS_PLAYER);
+		filter->DisableInteractsWithLayer(LAYER_INDEX_CONTENTS_NPC);
+	}
+
+	return TraceShape(a1, a2, a3, a4, filter, a6);
 }
 
 bool InitDetours(CGameConfig *gameConfig)

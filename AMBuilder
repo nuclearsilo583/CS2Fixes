@@ -14,7 +14,7 @@ for sdk_target in MMSPlugin.sdk_targets:
   try:
     version = subprocess.check_output(['git', 'describe', '--tags', '--long']).decode('ascii').strip()
   except subprocess.SubprocessError as e:
-    version = "1.8.5-dev nuclear silo edits (1.0.4)"
+    version = "1.7-dev"
     print("git describe failed as there are no tags")
 	
   print(f'Setting version to "{version}"')
@@ -88,6 +88,7 @@ for sdk_target in MMSPlugin.sdk_targets:
 
   protoc_builder = builder.tools.Protoc(protoc = sdk_target.protoc, sources = [
     os.path.join(sdk['path'], 'common', 'network_connection.proto'),
+    os.path.join(sdk['path'], 'common', 'netmessages.proto'),
     os.path.join(sdk['path'], 'common', 'networkbasetypes.proto'),
     os.path.join(sdk['path'], 'common', 'engine_gcmessages.proto'),
     os.path.join(sdk['path'], 'gcsdk', 'steammessages.proto'),
@@ -100,6 +101,7 @@ for sdk_target in MMSPlugin.sdk_targets:
     os.path.join(builder.sourcePath, 'protobuf', 'cs_usercmd.proto'),
     os.path.join(builder.sourcePath, 'protobuf', 'cstrike15_gcmessages.proto'),
     os.path.join(builder.sourcePath, 'protobuf', 'cstrike15_usermessages.proto'),
+    os.path.join(builder.sourcePath, 'protobuf', 'networksystem_protomessages.proto'),
   ])
   protoc_builder.protoc.includes += [
     os.path.join(sdk['path'], 'gcsdk'),
