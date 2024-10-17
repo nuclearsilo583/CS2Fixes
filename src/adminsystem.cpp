@@ -1033,7 +1033,7 @@ void ForceRestartRound(CCSPlayerController *player)
 
 	ClientPrintAll(HUD_PRINTTALK, "%s" ADMIN_PREFIX "restarted the round.", CHAT_PREFIX, pszCommandPlayerName);
 }
-
+/*
 CON_COMMAND_CHAT_FLAGS(tele, "- Teleport player 1 to player 2", ADMFLAG_CHEATS)
 {
 	// Only players can use this command at all
@@ -1230,7 +1230,7 @@ CON_COMMAND_CHAT_FLAGS(hp, "Set target HP", ADMFLAG_CHEATS)
 	}
 
 	PrintMultiAdminAction(nType, pszCommandPlayerName, "set health on");
-}
+}*/
 
 CAdminSystem::CAdminSystem()
 {

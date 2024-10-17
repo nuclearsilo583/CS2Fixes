@@ -744,7 +744,7 @@ void CZRPlayerClassManager::GetZRClassList(int iTeam, CUtlVector<std::shared_ptr
 	}
 }
 
-ZRZombieClass* CZRPlayerClassManager::GetPlayerClassIndex(CCSPlayerController *pController)
+std::shared_ptr<ZRZombieClass> CZRPlayerClassManager::GetPlayerClassIndex(CCSPlayerController *pController)
 {
 	int slot = pController->GetPlayerSlot();
 	//Message("CZRPlayerClassNameManager::GetPlayerClassIndex Player Slot: %d with class id: %i\n", slot, vecPlayerClassIndex[slot]);
@@ -1637,7 +1637,7 @@ void ZR_OnPlayerHurt(IGameEvent* pEvent)
 
 	if (pAttackerController->m_iTeamNum() == CS_TEAM_CT && pVictimController->m_iTeamNum() == CS_TEAM_T)
 	{
-		ZRZombieClass *pClass = g_pZRPlayerClassManager->GetPlayerClassIndex(pVictimController);
+		std::shared_ptr<ZRZombieClass> pClass = g_pZRPlayerClassManager->GetPlayerClassIndex(pVictimController);
 		//Message("victim class index is: %i with knockback value is: %.2f. Applying knockback.\n", pClass, pClass->flKnockback);
 
 		ZR_ApplyKnockback((CCSPlayerPawn*)pAttackerController->GetPawn(), (CCSPlayerPawn*)pVictimController->GetPawn(), iDmgHealth, szWeapon, iHitGroup, pClass->flKnockback);
@@ -1924,7 +1924,7 @@ CON_COMMAND_CHAT(zclass, "<teamname/class name/number> - Find and select your Z:
 
 		ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX "Select a class using \x2!zclass <class name/number>");
 		return;
-	} else {
+	}/* else {
 		const char* sCurrentClass = g_pUserPreferencesSystem->GetPreference(iSlot, sPreferenceKey);
 		if (sCurrentClass[0] != '\0')
 		{
@@ -1936,7 +1936,7 @@ CON_COMMAND_CHAT(zclass, "<teamname/class name/number> - Find and select your Z:
 			ClientPrint(player, HUD_PRINTTALK, ZR_PREFIX "Available %s classes (Printed class list to your console):", sTeamName);
 			ClientPrint(player, HUD_PRINTCONSOLE, ZR_PREFIX "Available %s classes:", sTeamName);
 		}
-	}
+	}*/
 
 	FOR_EACH_VEC(vecClasses, i)
 	{
