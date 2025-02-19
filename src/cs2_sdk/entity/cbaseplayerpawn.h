@@ -1,7 +1,7 @@
 /**
  * =============================================================================
  * CS2Fixes
- * Copyright (C) 2023-2024 Source2ZE
+ * Copyright (C) 2023-2025 Source2ZE
  * =============================================================================
  *
  * This program is free software; you can redistribute it and/or modify it under
@@ -24,6 +24,8 @@
 #include "services.h"
 
 extern bool g_bDropMapWeapons;
+void EW_PlayerDeathPre(CCSPlayerController* pController);
+extern bool g_bEnableEntWatch;
 
 class CBasePlayerPawn : public CBaseModelEntity
 {
@@ -39,7 +41,7 @@ public:
 	SCHEMA_FIELD(QAngle, v_angle)
 
 	// Drops any map-spawned weapons the pawn is holding
-	// NOTE: Currently very broken with map items (entities parented to weapons?) due to a game bug..? Needs further investigation/work
+	// NOTE: This doesn't predict correctly to the weapon holder! Looks very funky when testing, but not really an issue on live servers
 	void DropMapWeapons()
 	{
 		if (!m_pWeaponServices())
@@ -64,11 +66,20 @@ public:
 	{
 		// CommitSuicide doesn't go through OnTakeDamage_Alive
 		if (g_bDropMapWeapons)
+		{
+			if (g_bEnableEntWatch)
+			{
+				CCSPlayerController* pController = reinterpret_cast<CCSPlayerController*>(m_hController().Get());
+				if (pController)
+					EW_PlayerDeathPre(pController);
+			}
+			
 			DropMapWeapons();
+		}
 
 		static int offset = g_GameConfig->GetOffset("CBasePlayerPawn_CommitSuicide");
 		CALL_VIRTUAL(void, offset, this, bExplode, bForce);
 	}
 
-	CBasePlayerController *GetController() { return m_hController.Get(); }
+	CBasePlayerController* GetController() { return m_hController.Get(); }
 };
