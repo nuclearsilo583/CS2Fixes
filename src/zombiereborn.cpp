@@ -761,14 +761,6 @@ void CZRPlayerClassManager::GetZRClassList(int iTeam, CUtlVector<std::shared_ptr
 	}
 }
 
-std::shared_ptr<ZRZombieClass> CZRPlayerClassManager::GetPlayerClassIndex(CCSPlayerController *pController)
-{
-	int slot = pController->GetPlayerSlot();
-	//Message("CZRPlayerClassNameManager::GetPlayerClassIndex Player Slot: %d with class id: %i\n", slot, vecPlayerClassIndex[slot]);
-
-	return vecPlayerClassIndex[slot];
-}
-
 double CZRRegenTimer::s_flNextExecution;
 CZRRegenTimer* CZRRegenTimer::s_vecRegenTimers[MAXPLAYERS];
 
@@ -1126,7 +1118,7 @@ void ZR_OnPlayerSpawn(CCSPlayerController* pController)
 static float g_flAirMultiplier = 1.0;
 FAKE_FLOAT_CVAR(zr_knockback_scale_airmultiplier, "How much scale for knockback on client in air", g_flAirMultiplier, 0.2f, false)
 
-void ZR_ApplyKnockback(CCSPlayerPawn* pHuman, CCSPlayerPawn* pVictim, int iDamage, const char* szWeapon, int hitgroup, float classknockback, int hitgroup, float classknockback)
+void ZR_ApplyKnockback(CCSPlayerPawn* pHuman, CCSPlayerPawn* pVictim, int iDamage, const char* szWeapon, int hitgroup, float classknockback)
 {
 	std::shared_ptr<ZRWeapon> pWeapon = g_pZRWeaponConfig->FindWeapon(szWeapon);
 	std::shared_ptr<ZRHitgroup> pHitgroup = g_pZRHitgroupConfig->FindHitgroupIndex(hitgroup);
@@ -1138,18 +1130,15 @@ void ZR_ApplyKnockback(CCSPlayerPawn* pHuman, CCSPlayerPawn* pVictim, int iDamag
 
 	if (pHitgroup)
 		flHitgroupKnockbackScale = pHitgroup->flKnockback;
-	float flHitgroupKnockbackScale;
 
-	float fAirKnockback;
+	float fAirKnockback = 1.0f;
 	uint32 flags = pVictim->m_fFlags();
-	if(flags & FL_ONGROUND)
-		fAirKnockback = 1.0;
-	else
+	if(flags & !FL_ONGROUND)
 		fAirKnockback = g_flAirMultiplier;
 
 	Vector vecKnockback;
 	AngleVectors(pHuman->m_angEyeAngles(), &vecKnockback);
-	vecKnockback *= (iDamage * g_flKnockbackScale * flWeaponKnockbackScale * flHitgroupKnockbackScale * classknockback * flHitgroupKnockbackScale * classknockback * fAirKnockback);
+	vecKnockback *= (iDamage * g_flKnockbackScale * flWeaponKnockbackScale * flHitgroupKnockbackScale * classknockback * fAirKnockback);
 	pVictim->m_vecAbsVelocity = pVictim->m_vecAbsVelocity() + vecKnockback;
 }
 
@@ -1537,7 +1526,7 @@ void ZR_StartInitialCountdown()
 
 		if(0<g_iInfectionCountDown<=10)
 		{
-			for (int i = 0; i < gpGlobals->maxClients; i++)
+			for (int i = 0; i < GetGlobals()->maxClients; i++)
 			{
 				char sEntry[MAX_PATH];
 

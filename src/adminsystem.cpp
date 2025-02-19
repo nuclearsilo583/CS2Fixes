@@ -1066,7 +1066,7 @@ CON_COMMAND_CHAT_FLAGS(add_dc, "<name> <SteamID 64> <IP Address> - Adds a fake p
 }
 #endif
 
-CON_COMMAND_CHAT_FLAGS(rr, "- Force restart the round", ADMFLAG_GENERIC)
+/*CON_COMMAND_CHAT_FLAGS(rr, "- Force restart the round", ADMFLAG_GENERIC)
 {
 	ForceRestartRound(player);
 }

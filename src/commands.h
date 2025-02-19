@@ -109,6 +109,7 @@ struct WeaponMapEntry_t
 
 void RegisterWeaponCommands();
 void ParseChatCommand(const char*, CCSPlayerController*);
+void PrintInfoMapmusic(const CCommand &args, CCSPlayerController *player);
 
 #define CON_COMMAND_CHAT_FLAGS(name, description, flags)                                                                               \
 	void name##_callback(const CCommand& args, CCSPlayerController* player);                                                           \
