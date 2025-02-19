@@ -245,9 +245,6 @@ void Leader_ApplyLeaderVisuals(CCSPlayerPawn* pPawn)
 		pPawn->AcceptInput("Skin", 0);
 	}
 
-<<<<<<< HEAD
-	//pPawn->m_clrRender = LeaderColorMap[pPlayer->GetLeaderIndex()].clColor;
-=======
 	pPawn->m_clrRender = zpLeader->GetLeaderColor();
 	if (zpLeader->GetBeaconColor().a() == 255)
 	{
@@ -264,7 +261,6 @@ void Leader_ApplyLeaderVisuals(CCSPlayerPawn* pPawn)
 			zpLeader->EndGlow();
 		zpLeader->StartGlow(colorGlow, 0);
 	}
->>>>>>> 223a0075db585ccaefbe061f15d6a011b05c03c3
 }
 
 void Leader_RemoveLeaderVisuals(CCSPlayerPawn* pPawn)
@@ -865,33 +861,8 @@ CON_COMMAND_CHAT(leadercolor, "[color] - List leader colors in chat or change yo
 
 CON_COMMAND_CHAT_LEADER(leader, "[name] [color] - Force leader status on a player")
 {
-<<<<<<< HEAD
-	ForceLeader(args, player);
-}
-
-CON_COMMAND_CHAT_FLAGS(leader, "<name> [color]- forces leader status on a player", ADMFLAG_GENERIC)
-{
-	ForceLeader(args, player);
-}
-
-CON_COMMAND_CHAT_FLAGS(stripld, "<name> - strips leader status from a player", ADMFLAG_GENERIC)
-{
-	RemoveLeader(args, player);
-}
-
-CON_COMMAND_CHAT_FLAGS(removeleader, "<name> - remove leader status from a player", ADMFLAG_GENERIC)
-{
-	RemoveLeader(args, player);
-}
-
-void ForceLeader(const CCommand &args, CCSPlayerController *player)
-{
-	if (!g_bEnableLeader)
-		return;
-=======
 	ZEPlayer* pPlayer = player ? player->GetZEPlayer() : nullptr;
 	bool bIsAdmin = pPlayer ? pPlayer->IsAdminFlagSet(FLAG_LEADER) : true;
->>>>>>> 223a0075db585ccaefbe061f15d6a011b05c03c3
 
 	if (!bIsAdmin && GetLeaders().first >= g_iMaxLeaders)
 	{
@@ -923,11 +894,7 @@ void ForceLeader(const CCommand &args, CCSPlayerController *player)
 	}
 }
 
-<<<<<<< HEAD
-void RemoveLeader(const CCommand &args, CCSPlayerController *player)
-=======
 CON_COMMAND_CHAT_FLAGS(removeleader, "[name] - Remove leader status from a player", ADMFLAG_GENERIC)
->>>>>>> 223a0075db585ccaefbe061f15d6a011b05c03c3
 {
 	if (!g_bEnableLeader)
 		return;
